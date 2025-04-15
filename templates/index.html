@@ -1,0 +1,425 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-dark">
+                <h4 class="mb-0">
+                    <i class="fas fa-robot me-2"></i>Pump.fun Sniper Bot
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card border-0 bg-dark shadow-sm mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="fas fa-play me-2"></i>Bot Control
+                                </h5>
+                                <ul class="nav nav-tabs mb-3" id="botControlTabs" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active" id="live-tab" data-bs-toggle="tab" data-bs-target="#live" type="button" role="tab" aria-controls="live" aria-selected="true">Live Mode</button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="test-tab" data-bs-toggle="tab" data-bs-target="#test" type="button" role="tab" aria-controls="test" aria-selected="false">Test Mode</button>
+                                    </li>
+                                </ul>
+                                <div class="tab-content" id="botControlTabsContent">
+                                    <div class="tab-pane fade show active" id="live" role="tabpanel" aria-labelledby="live-tab">
+                                        <form id="botControlForm" action="{{ url_for('start_bot') }}" method="post">
+                                            <div class="mb-3">
+                                                <label for="token_address" class="form-label">Token Address</label>
+                                                <input type="text" class="form-control" id="token_address" name="token_address" placeholder="Enter Solana token address" required>
+                                            </div>
+                                            <div class="d-grid gap-2">
+                                                <button type="submit" class="btn btn-success" id="startBtn">
+                                                    <i class="fas fa-play me-2"></i>Start Bot
+                                                </button>
+                                                <button type="button" class="btn btn-danger" id="stopBtn" disabled>
+                                                    <i class="fas fa-stop me-2"></i>Stop Bot
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                    <div class="tab-pane fade" id="test" role="tabpanel" aria-labelledby="test-tab">
+                                        <form id="testBotForm" action="{{ url_for('test_bot') }}" method="post">
+                                            <div class="mb-3">
+                                                <label for="test_token_address" class="form-label">Test Token Address (optional)</label>
+                                                <input type="text" class="form-control" id="test_token_address" name="token_address" placeholder="Auto-generated if empty">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Test Scenario</label>
+                                                <select name="test_mode" class="form-select">
+                                                    <option value="buy_sell" selected>Buy & Sell (Profit)</option>
+                                                    <option value="buy">Buy Only</option>
+                                                    <option value="sell">Sell Only</option>
+                                                </select>
+                                            </div>
+                                            <div class="d-grid gap-2">
+                                                <button type="submit" class="btn btn-warning">
+                                                    <i class="fas fa-vial me-2"></i>Run Test
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card border-0 bg-dark shadow-sm mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="fas fa-chart-line me-2"></i>Bot Status
+                                </h5>
+                                <div id="botStatus">
+                                    <div class="mb-2">
+                                        <span class="text-muted">Status:</span>
+                                        <span id="statusValue" class="badge bg-secondary">Stopped</span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <span class="text-muted">Token:</span>
+                                        <span id="tokenValue" class="text-truncate d-inline-block" style="max-width: 180px;">N/A</span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <span class="text-muted">Active Wallets:</span>
+                                        <span id="walletsValue">0</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-muted">Transactions:</span>
+                                        <span id="transactionsValue">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card border-0 bg-dark shadow-sm mt-3">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-history me-2"></i>Transaction History
+                        </h5>
+                        <div class="table-responsive">
+                            <table class="table table-dark table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Time</th>
+                                        <th>Wallet</th>
+                                        <th>Type</th>
+                                        <th>Amount</th>
+                                        <th>Token Amount</th>
+                                        <th>TX Hash</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="transactionsList">
+                                    <tr>
+                                        <td colspan="6" class="text-center">No transactions yet</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-dark">
+                <h4 class="mb-0">
+                    <i class="fas fa-cog me-2"></i>Configuration
+                </h4>
+            </div>
+            <div class="card-body">
+                <form id="configForm" action="{{ url_for('save_config') }}" method="post">
+                    <!-- Settings -->
+                    <div class="accordion mb-3" id="configAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingOne">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                                    <i class="fas fa-sliders-h me-2"></i>General Settings
+                                </button>
+                            </h2>
+                            <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#configAccordion">
+                                <div class="accordion-body">
+                                    <div class="mb-3">
+                                        <label for="rpc_url" class="form-label">RPC URL</label>
+                                        <input type="url" class="form-control" id="rpc_url" name="rpc_url" 
+                                               value="{{ config['SETTINGS']['rpc_url'] if config.has_section('SETTINGS') else 'https://api.mainnet-beta.solana.com' }}">
+                                        <div class="form-text">Solana RPC endpoint</div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="slippage" class="form-label">Slippage (%)</label>
+                                        <input type="number" class="form-control" id="slippage" name="slippage" min="0.1" max="100" step="0.1" 
+                                               value="{{ config['SETTINGS']['slippage'] if config.has_section('SETTINGS') else '10' }}">
+                                        <div class="form-text">Transaction slippage tolerance</div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="buy_delay" class="form-label">Buy Delay (seconds)</label>
+                                        <input type="number" class="form-control" id="buy_delay" name="buy_delay" min="0" max="60" step="0.5"
+                                               value="{{ config['SETTINGS']['buy_delay'] if config.has_section('SETTINGS') else '2' }}">
+                                        <div class="form-text">Delay between wallet buys</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingTwo">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                                    <i class="fas fa-wallet me-2"></i>Wallet Settings
+                                </button>
+                            </h2>
+                            <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#configAccordion">
+                                <div class="accordion-body">
+                                    {% for i in range(1, 5) %}
+                                    <div class="mb-3">
+                                        <label for="wallet_key_{{ i }}" class="form-label">Wallet {{ i }} Private Key</label>
+                                        <div class="input-group">
+                                            <input type="password" class="form-control wallet-key" id="wallet_key_{{ i }}" name="wallet_key_{{ i }}"
+                                                   value="{{ config['WALLETS']['wallet_' ~ i] if config.has_section('WALLETS') and 'wallet_' ~ i in config['WALLETS'] else '' }}">
+                                            <button class="btn btn-outline-secondary toggle-password" type="button" data-target="#wallet_key_{{ i }}">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="btn btn-outline-secondary test-wallet" type="button" data-wallet-id="{{ i }}">
+                                                Test
+                                            </button>
+                                        </div>
+                                        <div class="wallet-status-{{ i }} mt-1"></div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingThree">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                                    <i class="fas fa-coins me-2"></i>Buy Amounts
+                                </button>
+                            </h2>
+                            <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#configAccordion">
+                                <div class="accordion-body">
+                                    {% for i in range(1, 5) %}
+                                    <div class="mb-3">
+                                        <label for="amount{{ i }}" class="form-label">Amount {{ i }} (SOL)</label>
+                                        <input type="number" class="form-control" id="amount{{ i }}" name="amount{{ i }}" min="0" step="0.001"
+                                               value="{{ config['BUY_AMOUNTS']['amount' ~ i] if config.has_section('BUY_AMOUNTS') else ['0.01', '0.05', '0.001', '0.1'][i-1] }}">
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingFour">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour">
+                                    <i class="fas fa-sign-out-alt me-2"></i>Sell Conditions
+                                </button>
+                            </h2>
+                            <div id="collapseFour" class="accordion-collapse collapse" aria-labelledby="headingFour" data-bs-parent="#configAccordion">
+                                <div class="accordion-body">
+                                    <div class="mb-3">
+                                        <label for="profit_percentage" class="form-label">Profit Target (%)</label>
+                                        <input type="number" class="form-control" id="profit_percentage" name="profit_percentage" min="1" max="1000" step="1"
+                                               value="{{ config['SELL_CONDITIONS']['profit_percentage'] if config.has_section('SELL_CONDITIONS') else '50' }}">
+                                        <div class="form-text">Sell when profit reaches this percentage</div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="timeout_seconds" class="form-label">Timeout (seconds)</label>
+                                        <input type="number" class="form-control" id="timeout_seconds" name="timeout_seconds" min="5" step="1"
+                                               value="{{ config['SELL_CONDITIONS']['timeout_seconds'] if config.has_section('SELL_CONDITIONS') else '300' }}">
+                                        <div class="form-text">Sell after this many seconds regardless of profit</div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="num_buyers" class="form-label">Number of Buyers</label>
+                                        <input type="number" class="form-control" id="num_buyers" name="num_buyers" min="1" step="1"
+                                               value="{{ config['SELL_CONDITIONS']['num_buyers'] if config.has_section('SELL_CONDITIONS') else '10' }}">
+                                        <div class="form-text">Sell when this many buyers have purchased the token</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Save Configuration
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Forms submission handling
+document.getElementById('botControlForm').addEventListener('submit', function(e) {
+    document.getElementById('startBtn').disabled = true;
+    document.getElementById('startBtn').innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Starting...';
+});
+
+// Toggle password visibility
+document.querySelectorAll('.toggle-password').forEach(button => {
+    button.addEventListener('click', function() {
+        const targetId = this.getAttribute('data-target');
+        const inputField = document.querySelector(targetId);
+        
+        if (inputField.type === 'password') {
+            inputField.type = 'text';
+            this.innerHTML = '<i class="fas fa-eye-slash"></i>';
+        } else {
+            inputField.type = 'password';
+            this.innerHTML = '<i class="fas fa-eye"></i>';
+        }
+    });
+});
+
+// Test wallet connection
+document.querySelectorAll('.test-wallet').forEach(button => {
+    button.addEventListener('click', function() {
+        const walletId = this.getAttribute('data-wallet-id');
+        const walletKey = document.getElementById(`wallet_key_${walletId}`).value;
+        const statusDiv = document.querySelector(`.wallet-status-${walletId}`);
+        
+        if (!walletKey || walletKey.trim() === '') {
+            statusDiv.innerHTML = '<small class="text-danger">Please enter a wallet key</small>';
+            return;
+        }
+        
+        // Show loading indicator
+        statusDiv.innerHTML = '<small class="text-info"><span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Testing connection...</small>';
+        
+        // Send request to test wallet
+        fetch('/test_wallet', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ wallet_key: walletKey })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                statusDiv.innerHTML = `<small class="text-success"><i class="fas fa-check-circle me-1"></i>${data.message}</small>`;
+            } else {
+                statusDiv.innerHTML = `<small class="text-danger"><i class="fas fa-exclamation-circle me-1"></i>${data.message}</small>`;
+            }
+        })
+        .catch(error => {
+            statusDiv.innerHTML = `<small class="text-danger"><i class="fas fa-exclamation-circle me-1"></i>Error: ${error.message}</small>`;
+        });
+    });
+});
+
+// Stop bot button
+document.getElementById('stopBtn').addEventListener('click', function() {
+    if (confirm('Are you sure you want to stop the bot?')) {
+        this.disabled = true;
+        this.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Stopping...';
+        
+        // Submit form to stop bot
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/stop_bot';
+        document.body.appendChild(form);
+        form.submit();
+    }
+});
+
+// Poll bot status
+function updateBotStatus() {
+    fetch('/bot_status')
+    .then(response => response.json())
+    .then(data => {
+        // Update status indicators
+        const statusBadge = document.getElementById('statusValue');
+        const tokenValue = document.getElementById('tokenValue');
+        const walletsValue = document.getElementById('walletsValue');
+        const transactionsValue = document.getElementById('transactionsValue');
+        
+        // Update status badge
+        if (data.running) {
+            statusBadge.className = 'badge bg-success';
+            statusBadge.textContent = 'Running';
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+        } else {
+            statusBadge.className = 'badge bg-secondary';
+            statusBadge.textContent = 'Stopped';
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+        }
+        
+        // Update token
+        if (data.token) {
+            tokenValue.textContent = data.token;
+            tokenValue.title = data.token;
+        } else {
+            tokenValue.textContent = 'N/A';
+            tokenValue.title = '';
+        }
+        
+        // Update wallets
+        walletsValue.textContent = data.wallets || 0;
+        
+        // Update transactions count
+        transactionsValue.textContent = data.transactions ? data.transactions.length : 0;
+        
+        // Update transaction list
+        const transactionsList = document.getElementById('transactionsList');
+        if (data.transactions && data.transactions.length > 0) {
+            // Clear the "no transactions" row if it exists
+            if (transactionsList.innerHTML.includes('No transactions yet')) {
+                transactionsList.innerHTML = '';
+            }
+            
+            // Update the transaction list
+            let html = '';
+            data.transactions.slice().reverse().forEach(tx => {
+                let statusClass = '';
+                if (tx.type.includes('ERROR') || tx.type.includes('FAILED')) {
+                    statusClass = 'text-danger';
+                } else if (tx.type.includes('BUY')) {
+                    statusClass = 'text-info';
+                } else if (tx.type.includes('SELL')) {
+                    statusClass = 'text-success';
+                }
+                
+                html += `
+                <tr class="${statusClass}">
+                    <td>${tx.timestamp}</td>
+                    <td>${tx.wallet}</td>
+                    <td>${tx.type}</td>
+                    <td>${typeof tx.amount === 'number' ? tx.amount.toFixed(4) : tx.amount} SOL</td>
+                    <td>${tx.token_amount}</td>
+                    <td>${tx.tx_hash ? 
+                        `<a href="https://solscan.io/tx/${tx.tx_hash}" target="_blank" class="text-truncate d-inline-block" style="max-width: 100px;">${tx.tx_hash}</a>` : 
+                        'N/A'}</td>
+                </tr>`;
+            });
+            transactionsList.innerHTML = html;
+        } else {
+            transactionsList.innerHTML = '<tr><td colspan="6" class="text-center">No transactions yet</td></tr>';
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching bot status:', error);
+    });
+}
+
+// Update status every 5 seconds
+updateBotStatus();
+setInterval(updateBotStatus, 5000);
+</script>
+{% endblock %}
